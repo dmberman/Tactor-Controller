@@ -82,7 +82,7 @@ void GetLineCoding(tLineCoding *psLineCoding)
 
 
 unsigned long
-ControlHandler(void *pvCBData, unsigned long ulEvent,
+USB_ControlHandler(void *pvCBData, unsigned long ulEvent,
                unsigned long ulMsgValue, void *pvMsgData)
 {
 
@@ -162,7 +162,7 @@ ControlHandler(void *pvCBData, unsigned long ulEvent,
 //
 //*****************************************************************************
 unsigned long
-TxHandler(void *pvCBData, unsigned long ulEvent, unsigned long ulMsgValue,
+USB_TxHandler(void *pvCBData, unsigned long ulEvent, unsigned long ulMsgValue,
           void *pvMsgData)
 {
     //
@@ -209,7 +209,7 @@ TxHandler(void *pvCBData, unsigned long ulEvent, unsigned long ulMsgValue,
 //
 //*****************************************************************************
 unsigned long
-RxHandler(void *pvCBData, unsigned long ulEvent, unsigned long ulMsgValue,
+USB_RxHandler(void *pvCBData, unsigned long ulEvent, unsigned long ulMsgValue,
           void *pvMsgData)
 {
     unsigned long ulCount;
@@ -238,6 +238,26 @@ RxHandler(void *pvCBData, unsigned long ulEvent, unsigned long ulMsgValue,
         		ucBytesRead = USBBufferRead((tUSBBuffer *)&g_sRxBuffer, ucCharArr, ulMsgValue);
 				for(ulCount=0;ulCount<ucBytesRead;ulCount++){
 					nextByte = ucCharArr[ulCount];
+
+					//Ignore non-printing and whitespace characters
+					if(nextByte <= ' '){
+						break;
+					}
+
+					//Ignore comments
+					if(nextByte == '#'){
+						g_ucReadMode = COMMENT;
+						break;
+					}
+
+					if(g_ucReadMode == COMMENT){
+						if(nextByte == '#'){
+							g_ucReadMode = FUNCTION;
+							g_ulCharIndex = 0;
+							g_ulParamIndex = 0;
+						}
+						break;
+					}
 
 					if(nextByte == ')'){ //End of input
 						g_strAssembler[g_ulCharIndex] = NULL;
@@ -347,6 +367,7 @@ RxHandler(void *pvCBData, unsigned long ulEvent, unsigned long ulMsgValue,
         // up in a release build or hang in a debug build.
         //
         default:
+        	return(0);
     }
 
     return(0);

@@ -10,9 +10,9 @@
 
 
 
-extern unsigned long RxHandler(void *pvCBData, unsigned long ulEvent,
+extern unsigned long USB_RxHandler(void *pvCBData, unsigned long ulEvent,
                                unsigned long ulMsgValue, void *pvMsgData);
-extern unsigned long TxHandler(void *pvlCBData, unsigned long ulEvent,
+extern unsigned long USB_TxHandler(void *pvlCBData, unsigned long ulEvent,
                                unsigned long ulMsgValue, void *pvMsgData);
 
 extern const tUSBBuffer g_sTxBuffer;

@@ -111,11 +111,11 @@ const unsigned char * const g_pStringDescriptors[] =
 // CDC device callback function prototypes.
 //
 //*****************************************************************************
-unsigned long RxHandler(void *pvCBData, unsigned long ulEvent,
+unsigned long USB_RxHandler(void *pvCBData, unsigned long ulEvent,
                         unsigned long ulMsgValue, void *pvMsgData);
-unsigned long TxHandler(void *pvCBData, unsigned long ulEvent,
+unsigned long USB_TxHandler(void *pvCBData, unsigned long ulEvent,
                         unsigned long ulMsgValue, void *pvMsgData);
-unsigned long ControlHandler(void *pvCBData, unsigned long ulEvent,
+unsigned long USB_ControlHandler(void *pvCBData, unsigned long ulEvent,
                              unsigned long ulMsgValue, void *pvMsgData);
 
 //*****************************************************************************
@@ -142,7 +142,7 @@ const tUSBDCDCDevice g_sCDCDevice =
     USB_PID_SERIAL,
     0,
     USB_CONF_ATTR_SELF_PWR,
-    ControlHandler,
+    USB_ControlHandler,
     (void *)&g_sCDCDevice,
     USBBufferEventCallback,
     (void *)&g_sRxBuffer,
@@ -159,14 +159,14 @@ const tUSBDCDCDevice g_sCDCDevice =
 //
 //*****************************************************************************
 
-#define USB_BUFFER_SIZE 256
+#define USB_BUFFER_SIZE 512
 
 unsigned char g_pcUSBRxBuffer[USB_BUFFER_SIZE];
 unsigned char g_pucRxBufferWorkspace[USB_BUFFER_WORKSPACE_SIZE];
 const tUSBBuffer g_sRxBuffer =
 {
     false,                          // This is a receive buffer.
-    RxHandler,                      // pfnCallback
+    USB_RxHandler,                      // pfnCallback
     (void *)&g_sCDCDevice,          // Callback data is our device pointer.
     USBDCDCPacketRead,              // pfnTransfer
     USBDCDCRxPacketAvailable,       // pfnAvailable
@@ -186,7 +186,7 @@ unsigned char g_pucTxBufferWorkspace[USB_BUFFER_WORKSPACE_SIZE];
 const tUSBBuffer g_sTxBuffer =
 {
     true,                           // This is a transmit buffer.
-    TxHandler,                      // pfnCallback
+    USB_TxHandler,                      // pfnCallback
     (void *)&g_sCDCDevice,          // Callback data is our device pointer.
     USBDCDCPacketWrite,             // pfnTransfer
     USBDCDCTxPacketAvailable,       // pfnAvailable

@@ -11,6 +11,7 @@
 //State Variables
 #define FUNCTION 0
 #define PARAMETER 1
+#define COMMENT 2
 
 
 #define USB_RX_LENGTH 50
