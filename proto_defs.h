@@ -10,94 +10,30 @@
 
 #define N_PARAMS 10 //Max number of parameters for a function
 #define MAX_STR_LEN 20 //Max length in characters of parameter or function name value
+#define Tx_MAX_PACKET_LENGTH 25//Max length of transmit packet
 
-#define STATUS_SUCCESS 'S'
-#define STATUS_FAIL 'F'
-#define STATUS_COMMAND_UNKNOWN 'N'
-#define STATUS_PACKET_RECEIVED 0xA2
-#define STATUS_PACKET_FAILURE 0xA3
-#define STATUS_I2C_TIMEOUT 0xA4
-#define NO_STATUS 0xFF
+#define MAX_PARAM_LENGTH 6
+#define MAX_FUNC_LENGTH 3
 
-#define GPIO_INVALID_BASE 'N'
-#define GPIO_INVALID_PIN 'N'
+//Motor Controls
+#define MOTOR_RUN 'R'
+#define MOTOR_STOP 'S'
+#define ALL_STOP 'A'
+#define ALL_RUN 'T'
 
-#define START_OF_PACKET '/'
-#define END_OF_PACKET '\n'
+//Communication
+#define ACK 'K'
+#define NACK 'N'
+#define LED 'L'
+#define COM_CHECK 'H'
+#define RESET 'X'
+#define END_OF_PACKET 10
 
-#define COM_CHECK 'A'
-
-#define SET_LED 0x02
-
-#define SET_PIN_DIRECTION 0x10
-#define SET_PIN_STATE 0x12
-#define GET_PIN_STATE 0x14
-#define ENABLE_PIN_INT 0x16
-
-
-#define I2C_TIMEOUT_VALUE 99999
-
-#define PWM_INIT 10
-#define PWM_SET_DUTY 11
-
-#define SINE_INIT 16
-#define SINE_STOP 17
-#define SINE_SET_AMPLITUDE 12
-#define SINE_SET_FREQ 13
-#define SINE_SET_MODE 14
-#define SINE_SET_PHASE 15
-
-/*
-#define I2C_INIT 0x20
-#define I2C_SET_ADDR 0x22
-#define I2C_ACK_OVERRIDE 0x24
-#define I2C_ACK_VALUE 0x26
-#define I2C_SEND_SINGLE 0x28
-#define I2C_REC_SINGLE 0x30
-#define I2C_BURST_SEND_START 0x32
-#define I2C_BURST_SEND_CONT 0x34
-#define I2C_BURST_SEND_STOP 0x36
-#define I2C_BURST_SEND_ERROR_STOP 0x38
-#define I2C_BURST_REC_START 0x40
-#define I2C_BURST_REC_CONT 0x42
-#define I2C_BURST_REC_STOP 0x44
-#define I2C_BURST_REC_ERROR_STOP 0x46
-#define I2C_SEND_QUICK_COMMAND 0x48
-#define I2C_HS_MASTER_CODE_SEND 0x50
-#define I2C_SET_TIMEOUT 0x52
-#define I2C_GET_ERRORS 0x54
-
-#define I2C_WRITE_REG_SINGLE 0x56
-#define I2C_READ_REG_SINGLE 0x58
-
-#define I2C_ERROR_ADDR_ACK 0x61
-#define I2C_ERROR_ARB_LOST 0x62
-#define I2C_ERROR_ERR_NONE 0x63
-#define I2C_ERROR_DATA_ACK 0x64
-#define I2C_UNKNOWN_ERROR 0x65
-*/
-
-
-#define DRV2605_WRITE_REG 70
-#define DRV2605_READ_REG 71
-#define DRV2605_SET_MUX 72
-#define DRV2605_ENABLE 83
-
-
-/*
-#define DRV2605_SET_CONTROL_1 73
-#define DRV2605_SET_CONTROL_2 74
-#define DRV2605_SET_CONTROL_3 75
-#define DRV2605_SET_RATED_VOLTAGE 76
-#define DRV2605_SET_CLAMP_VOLTAGE 77
-#define DRV2605_SET_LIBARY 78
-#define DRV2605_SET_WAVEFORM 79
-#define DRV2605_SET_FEEDBACK 80
-#define DRV2605_AUTOCAL 81
-#define DRV2605_GO 82
-
-#define DRV2605_DISABLE 84
-*/
+//Waveforms
+#define SET_WAVEFORM 'W'
+#define GET_WAVEFORM 'G'
+#define SET_SAMPLE_RATE 'P'
+#define GET_SAMPLE_RATE 'M'
 
 
 #endif /* PROTO_DEFS_H_ */

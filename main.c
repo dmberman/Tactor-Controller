@@ -32,9 +32,11 @@
 #include "usb_structs.h"
 #include "main.h"
 #include "I2C_Stellaris_API.h"
+#include "waveform.h"
 
 #include "str2num.h"
 #include "proto_defs.h"
+#include "PCA9685.h"
 
 #include <stdbool.h>
 #include <math.h>
@@ -47,11 +49,31 @@
 
 //*****************************************************************************
 //
+//Flash Memory Variables
+//
+//*****************************************************************************
+ volatile unsigned long g_unsavedWaveform = FALSE;
+
+//*****************************************************************************
+//
+//Sine Timer Variables
+//
+//*****************************************************************************
+
+volatile unsigned long g_ulSampleFreq = 0;
+volatile unsigned long g_sineTimerVal = 0;
+volatile unsigned long g_sineTimerMS = 0;
+volatile unsigned long g_sineIntCount = 0;
+unsigned long g_sysClk = 0;
+unsigned long g_timerLoadVal = 0;
+
+//*****************************************************************************
+//
 // The system tick rate expressed both as ticks per second and a millisecond
 // period.
 //
 //*****************************************************************************
-#define SYSTICKS_PER_SECOND 80
+#define SYSTICKS_PER_SECOND 1
 #define SYSTICK_PERIOD_MS (1000 / SYSTICKS_PER_SECOND)
 
 
@@ -61,7 +83,6 @@
 //
 //*****************************************************************************
 volatile unsigned long g_ulSysTickCount = 0;
-
 //*****************************************************************************
 //
 // Global USB packet counters
@@ -76,26 +97,6 @@ volatile unsigned long g_ulUSBRxCount = 0;
 //
 //*****************************************************************************
 volatile tBoolean g_bUSBConfigured = false;
-
-//*****************************************************************************
-//
-// Global Sine variables
-//
-//*****************************************************************************
-
-volatile unsigned long g_ulSineMode = PWM_MODE;
-volatile unsigned long g_ulSineFreq[N_SINE_CMPS];
-volatile unsigned long g_ulSineAmplitude[N_SINE_CMPS];
-volatile double g_dblSinePhase[N_SINE_CMPS];
-volatile double g_dblSineSamplePeriod;
-volatile double g_dblSineTime = 0;
-
-//*****************************************************************************
-//
-// Global PWM variables
-//
-//*****************************************************************************
-volatile unsigned long g_ulPWMPeriod;
 
 
 
@@ -118,26 +119,25 @@ __error__(char *pcFilename, unsigned long ulLine)
 
 volatile unsigned long dutyCycle;
 
-void sineTimerInit(unsigned long sineFreq){
-    //TIMER INT OUTPUT
-    ROM_GPIOPinTypeGPIOOutput(GPIO_PORTB_BASE, GPIO_PIN_7);
-    ROM_GPIOPinWrite(GPIO_PORTB_BASE,GPIO_PIN_7,0x00); //Set pin low
-
-    g_dblSineSamplePeriod = 1/(double)sineFreq; //Sample period
-
-	SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER1);
-	ROM_TimerDisable(TIMER1_BASE,TIMER_A);
-    ROM_TimerConfigure(TIMER1_BASE,TIMER_CFG_A_PERIODIC | TIMER_CFG_SPLIT_PAIR);
-    ROM_TimerIntClear(TIMER1_BASE,TIMER_TIMA_TIMEOUT);
-    ROM_TimerLoadSet(TIMER1_BASE,TIMER_A,(ROM_SysCtlClockGet()/sineFreq)/2);
-    ROM_TimerIntEnable(TIMER1_BASE,TIMER_TIMA_TIMEOUT);
-    ROM_IntEnable(INT_TIMER1A);
-    ROM_TimerEnable(TIMER1_BASE,TIMER_A);
+void sineTimerLoad(unsigned long sampleFreq){
+    g_ulSampleFreq = sampleFreq; //Sample period
+    g_sysClk = ROM_SysCtlClockGet();
+    g_timerLoadVal = g_sysClk/sampleFreq;
+    ROM_TimerLoadSet(SINE_TIMER_BASE,SINE_TIMER_SIDE,g_timerLoadVal);
 }
 
-void sineTimerStop(void){
-    ROM_TimerDisable(TIMER1_BASE,TIMER_A);
+void initSineTimer(unsigned long sampleFreq){
+	ROM_SysCtlPeripheralEnable(SINE_TIMER_PERHIP);
+    flashLED(LED_GREEN);
+	ROM_TimerConfigure(SINE_TIMER_BASE,TIMER_CFG_PERIODIC);
+	ROM_TimerControlStall(SINE_TIMER_BASE,SINE_TIMER_SIDE,1);
+	sineTimerLoad(sampleFreq);
+    ROM_TimerIntClear(SINE_TIMER_BASE,SINE_TIMER_INT);
+    ROM_TimerEnable(SINE_TIMER_BASE,SINE_TIMER_SIDE);
+    ROM_TimerIntEnable(SINE_TIMER_BASE,SINE_TIMER_INT);
+    ROM_IntEnable(SINE_TIMER_IE);
 }
+
 
 int initUSB(void){
     // Initialize USB
@@ -197,10 +197,12 @@ int initSysTick(void){
     ROM_SysTickIntEnable();
     ROM_SysTickEnable();
     ROM_IntMasterEnable();
+    return 0;
 }
 
 int initI2C(void){
-	I2CSetup(I2C3_MASTER_BASE,true);
+	I2CSetup(I2C_BASE,true);
+	return 0;
 }
 
 int init(void){
@@ -212,8 +214,23 @@ int init(void){
 	    initSW();
 	    initUSB();
 
-	    // Enable the system tick. (used for RTP)
+	    initI2C();
+
+	    PCA9685_init(PCA9685_DEFAULT_FREQUENCY);
+
+	    initSysTick();
+	    initUART();
+	    initWaveform();
+	    initSineTimer(50);
 		return 0;
+}
+
+void flashLED(unsigned long color){
+	unsigned long oldLEDState, ulLoop;
+	oldLEDState = GPIOPinRead(GPIO_PORTF_BASE, GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3);
+	GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3, color); //Turn on LED
+	for(ulLoop = 0; ulLoop < 100000; ulLoop++);
+	GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3, oldLEDState); //Return to previous LED state
 }
 
 int main(void) {
@@ -229,25 +246,18 @@ int main(void) {
 
 	init();
 	UARTprintf("Initialized\n");
-
-	for(ulLoop = 0; ulLoop < 30000; ulLoop++);
 	while(1){
-
-		for(ulLoop = 0; ulLoop < 1000000; ulLoop++);
+		if(g_unsavedWaveform == TRUE){
+			waveformFlashSave();
+		}
 
 		if(ulTxCount != g_ulUSBTxCount){ //data has been sent
-				oldLEDState = GPIOPinRead(GPIO_PORTF_BASE, GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3);
-				GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3, 0x0E); //Turn on WHITE LED
-				for(ulLoop = 0; ulLoop < 750000; ulLoop++);
-				GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3, oldLEDState); //Return to previous LED state
+				flashLED(0x0E); //Flash White LED
 				ulTxCount = g_ulUSBTxCount;
 		}
 
 		if(ulRxCount != g_ulUSBRxCount){ //data has been received
-				oldLEDState = GPIOPinRead(GPIO_PORTF_BASE, GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3);
-				GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3, 0x0C); //Turn on YELLOW LED
-				for(ulLoop = 0; ulLoop < 750000; ulLoop++);
-				GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3, oldLEDState); //Return to previous LED state
+				flashLED(0x0C); //Flash Yellow LED
 				ulRxCount = g_ulUSBRxCount;
 		}
 
@@ -266,29 +276,24 @@ int main(void) {
 }
 
 
-unsigned char USBSendPacket(unsigned char data[], unsigned char length){
+unsigned long USBSendPacket(unsigned char data[], unsigned char length){
 	unsigned char packet[10];
 	unsigned char bytesWritten;
-	unsigned char status;
 	unsigned long ulCount;
-	unsigned long temp;
+	unsigned long status;
 
-	packet[0] = START_OF_PACKET;
 	for(ulCount = 0;ulCount<length;ulCount++){
-		temp=ulCount+1;
-		packet[temp] = data[ulCount];
-	}
-	ulCount = ulCount + 1;
+		packet[ulCount] = data[ulCount];
+	};
 	packet[ulCount] = END_OF_PACKET;
-
-	length = length + 2;
+	length ++;
 
 	bytesWritten = USBBufferWrite((tUSBBuffer *)&g_sTxBuffer,packet, length);
 	if(bytesWritten == length){
-			status = STATUS_SUCCESS;
+			status = USB_SEND_SUCCESS;
 	}
 	else{
-			status = STATUS_FAIL;
+			status = USB_SEND_FAIL;
 	}
 	return status;
 }
@@ -355,57 +360,74 @@ unsigned long GPIOPinNumber(unsigned char port){
 
 
 void parseUSB(unsigned char *func_name,unsigned char *params[],unsigned long nparams){
-	unsigned char status;
-	unsigned long ulFuncNum;
+	unsigned long i;
+	unsigned char packet[Tx_MAX_PACKET_LENGTH];
+	unsigned long sinFreq[N_SINE_COMPONENTS], sinAmplitude[N_SINE_COMPONENTS];
+	switch(func_name[0]){
+		case LED:
+			ROM_GPIOPinWrite(LED_BASE,LED_RED, str2ul(params[0]));
+			packet[0] = ACK;
+			break;
+		case MOTOR_RUN:
+			 runMotor(str2ul(params[0]), //Channel
+					 str2ul(params[1]),  //Waveform
+					 str2ul(params[2]),  //Amplitude Stretch
+					 str2ul(params[3])); //Frequency Stretch
+			packet[0] = ACK;
+			break;
+		case ALL_RUN:
+			for(i=0;i<N_MOTORS;i++){
+				runMotor(i, 			   //Channel
+						str2ul(params[0]), //Waveform
+						str2ul(params[1]), //Amplitude Stretch
+						str2ul(params[2])); //Frequency Stretch
 
-	ulFuncNum = str2ul(func_name);
-
-	switch(ulFuncNum){
-		case DRV2605_WRITE_REG:
-			DRV2605_setReg(str2ul(params[0]),str2ul(params[1]));
-			break;
-//		case DRV2605_READ_REG:
-//			DRV2605_setReg((unsigned char)params[0], (unsigned char)params[1]);
-//			break;
-		case DRV2605_SET_MUX:
-			DRV2605_setMUX(str2ul(params[0]));
-			break;
-		case DRV2605_ENABLE:
-			DRV2605_enable(str2ul(params[0]));
-			break;
-		case SINE_INIT:
-			sineTimerInit(str2ul(params[0]));
-			break;
-		case SINE_STOP:
-			sineTimerStop();
-			pwmSetDuty(0);
-			break;
-		case SINE_SET_AMPLITUDE:
-			g_ulSineAmplitude[str2ul(params[0])] = str2ul(params[1]);
-			break;
-		case SINE_SET_PHASE:
-			g_dblSinePhase[str2ul(params[0])] = (str2ul(params[1])/1000);
-			break;
-		case SINE_SET_FREQ:
-			g_ulSineFreq[str2ul(params[0])] = str2ul(params[1]);
-			break;
-		case SINE_SET_MODE:
-			if(str2ul(params[0]) == 0){
-				g_ulSineMode = PWM_MODE;
 			}
-			else{
-				g_ulSineMode = RTP_MODE;
+		case MOTOR_STOP:
+			stopMotor(str2ul(params[0])); //Channel
+			packet[0] = ACK;
+			break;
+		case ALL_STOP:
+			for(i=0;i<N_MOTORS;i++)
+				stopMotor(i);
+			packet[0] = ACK;
+			break;
+		case COM_CHECK:
+			packet[0] = ACK;
+			break;
+		case RESET:
+			PCA9685_reset();
+			PCA9685_init(PCA_9685_DEFAULT_FREQ);
+			packet[0] = ACK;
+			break;
+		case SET_WAVEFORM:
+			for(i=0;i<N_SINE_COMPONENTS;i++){
+				sinFreq[i] = str2ul(params[3+(i*2)]);
+				sinAmplitude[i] = str2ul(params[4+(i*2)]);
 			}
+			setWaveform(str2ul(params[0]), //Slope
+					str2ul(params[1]), //Envelope Shape
+					str2ul(params[2]), //Envelope Duty Cycle
+					sinFreq,
+					sinAmplitude);	   //Sine Component Amplitude
+			packet[0] = ACK;
 			break;
-		case PWM_INIT:
-			pwmInit(str2ul(params[0]));
+		case SET_SAMPLE_RATE:
+			sineTimerLoad(str2ul(params[0])); //sample frequency
+			packet[0] = ACK;
 			break;
-		case PWM_SET_DUTY:
-			pwmSetDuty(str2ul(params[0]));
+		case GET_WAVEFORM:
+			packet[0] = NACK;
+			break;
+		case GET_SAMPLE_RATE:
+			packet[0] = NACK;
 			break;
 		default:
-			status = STATUS_FAIL;
+			packet[0] = NACK;
 	}
+
+	USBSendPacket(packet,1);
+
 }
 
 
@@ -414,11 +436,21 @@ void parseUSB(unsigned char *func_name,unsigned char *params[],unsigned long npa
 // Interrupt handler for the system tick counter.
 //
 //*****************************************************************************
-void
-SysTickIntHandler(void){
+void SysTickIntHandler(void){
+	//flashLED(LED_GREEN);
 }
 
 void SineTimerIntHandler(void){
+	ROM_TimerIntClear(SINE_TIMER_BASE, SINE_TIMER_INT);
+	g_sineIntCount ++;
+	if(g_sineIntCount > 100){ //Toggle LED every 100 interrupts
+		GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_1,
+				~GPIOPinRead(GPIO_PORTF_BASE, GPIO_PIN_1));
+		g_sineIntCount = 0;
+	}
+	g_sineTimerVal = (g_timerLoadVal - TimerValueGet(SINE_TIMER_BASE,SINE_TIMER_SIDE)); //Add ISR Access Time
+	g_sineTimerMS += ((g_timerLoadVal+g_sineTimerVal)*1000)/g_sysClk;
+	stepWaveform(g_sineTimerMS);
 }
 
 void I2CIntHandler(void){

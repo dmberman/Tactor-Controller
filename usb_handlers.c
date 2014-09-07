@@ -212,8 +212,8 @@ unsigned long
 RxHandler(void *pvCBData, unsigned long ulEvent, unsigned long ulMsgValue,
           void *pvMsgData)
 {
-    unsigned long ulCount,ulCount2;
-    unsigned char ucCharArr[20];
+    unsigned long ulCount;
+    unsigned char ucCharArr[USB_RX_LENGTH];
     unsigned char ucBytesRead;
     unsigned char nextByte;
     //
@@ -239,9 +239,17 @@ RxHandler(void *pvCBData, unsigned long ulEvent, unsigned long ulMsgValue,
 				for(ulCount=0;ulCount<ucBytesRead;ulCount++){
 					nextByte = ucCharArr[ulCount];
 
-					if(nextByte == 10){ //line feed
-/*
+					if(nextByte == ')'){ //End of input
+						g_strAssembler[g_ulCharIndex] = NULL;
+						g_strParams[g_ulParamIndex] = malloc(strlen((char *)g_strAssembler) + 1); //allocate memory for parameter value
+						strcpy((char *)g_strParams[g_ulParamIndex],(char *)g_strAssembler);
+
+						if(g_ulParamIndex > 0){
+							g_ulParamIndex ++;
+						}
+
 						//Echo Command
+					    /*
 						ucCharArr[0] = '\n';
 						USBBufferWrite((tUSBBuffer *)g_sTxBuffer,(*c'\n',1);
 						USBBufferWrite((tUSBBuffer *)g_sTxBuffer,g_strFuncName,strlen((char *)g_strFuncName));
@@ -255,12 +263,13 @@ RxHandler(void *pvCBData, unsigned long ulEvent, unsigned long ulMsgValue,
 						ucCharArr = ")\n";
 						USBBufferWrite((tUSBBuffer *)g_sTxBuffer,ucCharArr,2);
 */
-						parseUSB(g_strFuncName,g_strParams,g_ulParamIndex+1);
+						parseUSB(g_strFuncName,g_strParams,g_ulParamIndex);
 						g_ucReadMode = FUNCTION;
 						g_ulCharIndex = 0;
 						g_ulParamIndex = 0;
+						break;
 					}
-					else{ //not end of line
+					else{ //not end of input
 						if(g_ucReadMode == FUNCTION){ //If currently reading function
 							if(nextByte == '('){
 								g_strAssembler[g_ulCharIndex] = NULL; //Terminate string
@@ -272,6 +281,12 @@ RxHandler(void *pvCBData, unsigned long ulEvent, unsigned long ulMsgValue,
 							else{
 								g_strAssembler[g_ulCharIndex] = nextByte;
 								g_ulCharIndex ++;
+								if(g_ulCharIndex > MAX_FUNC_LENGTH){ //Error Checking
+									g_ucReadMode = FUNCTION;
+									g_ulCharIndex = 0;
+									g_ulParamIndex = 0;
+									break;
+								}
 							}
 						}
 						else{ 						  //Currently reading parameters
@@ -283,14 +298,13 @@ RxHandler(void *pvCBData, unsigned long ulEvent, unsigned long ulMsgValue,
 								g_ulCharIndex = 0;
 							}
 							else{
-								if(nextByte == ')'){ //End of parameters
-									g_strAssembler[g_ulCharIndex] = NULL;
-									g_strParams[g_ulParamIndex] = malloc(strlen((char *)g_strAssembler) + 1); //allocate memory for parameter value
-									strcpy((char *)g_strParams[g_ulParamIndex],(char *)g_strAssembler);
-								}
-								else{ //Read Parameters
-									g_strAssembler[g_ulCharIndex] = nextByte;
-									g_ulCharIndex ++;
+								g_strAssembler[g_ulCharIndex] = nextByte;
+								g_ulCharIndex ++;
+								if(g_ulCharIndex > MAX_PARAM_LENGTH){ //Error Checking
+									g_ucReadMode = FUNCTION;
+									g_ulCharIndex = 0;
+									g_ulParamIndex = 0;
+									break;
 								}
 							}
 						}
@@ -312,7 +326,7 @@ RxHandler(void *pvCBData, unsigned long ulEvent, unsigned long ulMsgValue,
             //
             // For now just return 0
             //
-        	ulCount = 0;
+        	ulCount = 1;
             return(ulCount);
         }
 
@@ -333,11 +347,6 @@ RxHandler(void *pvCBData, unsigned long ulEvent, unsigned long ulMsgValue,
         // up in a release build or hang in a debug build.
         //
         default:
-#ifdef DEBUG
-            while(1);
-#else
-            break;
-#endif
     }
 
     return(0);

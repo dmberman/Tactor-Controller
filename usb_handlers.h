@@ -12,6 +12,9 @@
 #define FUNCTION 0
 #define PARAMETER 1
 
+
+#define USB_RX_LENGTH 50
+
 #define REC_MODE_NORMAL 0
 #define REC_MODE_STREAM 1
 

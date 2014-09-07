@@ -14,7 +14,8 @@ C_SRCS += \
 ../str2num.c \
 ../uartstdio.c \
 ../usb_handlers.c \
-../usb_structs.c 
+../usb_structs.c \
+../waveform.c 
 
 OBJS += \
 ./I2C_Stellaris_API.obj \
@@ -24,7 +25,8 @@ OBJS += \
 ./str2num.obj \
 ./uartstdio.obj \
 ./usb_handlers.obj \
-./usb_structs.obj 
+./usb_structs.obj \
+./waveform.obj 
 
 C_DEPS += \
 ./I2C_Stellaris_API.pp \
@@ -34,7 +36,8 @@ C_DEPS += \
 ./str2num.pp \
 ./uartstdio.pp \
 ./usb_handlers.pp \
-./usb_structs.pp 
+./usb_structs.pp \
+./waveform.pp 
 
 C_DEPS__QUOTED += \
 "I2C_Stellaris_API.pp" \
@@ -44,7 +47,8 @@ C_DEPS__QUOTED += \
 "str2num.pp" \
 "uartstdio.pp" \
 "usb_handlers.pp" \
-"usb_structs.pp" 
+"usb_structs.pp" \
+"waveform.pp" 
 
 OBJS__QUOTED += \
 "I2C_Stellaris_API.obj" \
@@ -54,7 +58,8 @@ OBJS__QUOTED += \
 "str2num.obj" \
 "uartstdio.obj" \
 "usb_handlers.obj" \
-"usb_structs.obj" 
+"usb_structs.obj" \
+"waveform.obj" 
 
 C_SRCS__QUOTED += \
 "../I2C_Stellaris_API.c" \
@@ -64,6 +69,7 @@ C_SRCS__QUOTED += \
 "../str2num.c" \
 "../uartstdio.c" \
 "../usb_handlers.c" \
-"../usb_structs.c" 
+"../usb_structs.c" \
+"../waveform.c" 
 
 
