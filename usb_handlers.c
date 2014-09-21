@@ -239,7 +239,7 @@ USB_RxHandler(void *pvCBData, unsigned long ulEvent, unsigned long ulMsgValue,
 				for(ulCount=0;ulCount<ucBytesRead;ulCount++){
 					nextByte = ucCharArr[ulCount];
 
-					//Ignore non-printing and whitespace characters
+/*					//Ignore non-printing and whitespace characters
 					if(nextByte <= ' '){
 						break;
 					}
@@ -258,7 +258,7 @@ USB_RxHandler(void *pvCBData, unsigned long ulEvent, unsigned long ulMsgValue,
 						}
 						break;
 					}
-
+*/
 					if(nextByte == ')'){ //End of input
 						g_strAssembler[g_ulCharIndex] = NULL;
 						g_strParams[g_ulParamIndex] = malloc(strlen((char *)g_strAssembler) + 1); //allocate memory for parameter value
@@ -346,7 +346,7 @@ USB_RxHandler(void *pvCBData, unsigned long ulEvent, unsigned long ulMsgValue,
             //
             // For now just return 0
             //
-        	ulCount = 1;
+        	ulCount = 0;
             return(ulCount);
         }
 

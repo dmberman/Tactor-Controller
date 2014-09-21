@@ -17,6 +17,13 @@ PCA9685.obj: ../PCA9685.c $(GEN_OPTS) $(GEN_HDRS)
 	@echo 'Finished building: $<'
 	@echo ' '
 
+i2c_handlers.obj: ../i2c_handlers.c $(GEN_OPTS) $(GEN_HDRS)
+	@echo 'Building file: $<'
+	@echo 'Invoking: ARM Compiler'
+	"C:/ti/ccsv5/tools/compiler/arm_5.1.1/bin/armcl" -mv7M4 --code_state=16 --float_support=FPv4SPD16 --abi=eabi -me --include_path="C:/StellarisWare" --include_path="C:/StellarisWare/usblib/ccs-cm4f/Debug" --include_path="C:/StellarisWare/driverlib/ccs-cm4f/Debug" --include_path="C:/ti/ccsv5/tools/compiler/arm_5.1.1/include" -g --gcc --define=PART_LM4F120H5QR --define=ccs="ccs" --define=TARGET_IS_BLIZZARD_RA2 --diag_warning=225 --display_error_number --diag_wrap=off --preproc_with_compile --preproc_dependency="i2c_handlers.pp" $(GEN_OPTS__FLAG) "$<"
+	@echo 'Finished building: $<'
+	@echo ' '
+
 i2c_structs.obj: ../i2c_structs.c $(GEN_OPTS) $(GEN_HDRS)
 	@echo 'Building file: $<'
 	@echo 'Invoking: ARM Compiler'

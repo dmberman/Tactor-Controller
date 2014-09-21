@@ -1,3 +1,7 @@
+#ifndef __DEBUG__
+#define __DEBUG__
+#endif
+
 #include "inc/hw_ints.h"
 #include "inc/hw_memmap.h"
 #include "inc/hw_types.h"
@@ -82,12 +86,18 @@ unsigned long g_timerLoadVal = 0;
 // Global system tick counter
 //
 //*****************************************************************************
+
 volatile unsigned long g_ulSysTickCount = 0;
+
+
+
 //*****************************************************************************
 //
 // Global USB packet counters
 //
 //*****************************************************************************
+
+
 volatile unsigned long g_ulUSBTxCount = 0;
 volatile unsigned long g_ulUSBRxCount = 0;
 
@@ -97,7 +107,6 @@ volatile unsigned long g_ulUSBRxCount = 0;
 //
 //*****************************************************************************
 volatile tBoolean g_bUSBConfigured = false;
-
 
 
 //*****************************************************************************
@@ -245,20 +254,39 @@ int main(void) {
 
 
 	init();
-	UARTprintf("Initialized\n");
+#ifdef __DEBUG__
+	UARTprintf("\nInitialized"
+			" File: %s"
+			" Line: %d", __FILE__,__LINE__);
+#endif
 	while(1){
 		if(g_unsavedWaveform == TRUE){
 			waveformFlashSave();
+#ifdef __DEBUG__
+			UARTprintf("\nWaveform Saved"
+					" File: %s"
+					" Line: %d", __FILE__,__LINE__);
+#endif
 		}
 
-		if(ulTxCount != g_ulUSBTxCount){ //data has been sent
+		if(ulTxCount != g_ulUSBTxCount){ //USB data has been sent
 				flashLED(0x0E); //Flash White LED
 				ulTxCount = g_ulUSBTxCount;
+#ifdef __DEBUG__
+				UARTprintf("\nUSB Packet Sent"
+						" File: %s"
+						" Line: %d", __FILE__,__LINE__);
+#endif
 		}
 
-		if(ulRxCount != g_ulUSBRxCount){ //data has been received
+		if(ulRxCount != g_ulUSBRxCount){ //USB data has been received
 				flashLED(0x0C); //Flash Yellow LED
 				ulRxCount = g_ulUSBRxCount;
+#ifdef __DEBUG__
+				UARTprintf("\nUSB Packet Received"
+						" File: %s"
+						" Line: %d", __FILE__,__LINE__);
+#endif
 		}
 
 		if(ulSysTickCount != g_ulSysTickCount){ //flash heartbeat
@@ -270,6 +298,11 @@ int main(void) {
 				for(ulLoop = 0; ulLoop < 100000; ulLoop++);
 				GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3, oldLEDState); //Return to previous LED state
 				ulSysTickCount = g_ulSysTickCount;
+#ifdef __DEBUG__
+				UARTprintf("\nHeartbeat"
+						" File: %s"
+						" Line: %d", __FILE__,__LINE__);
+#endif
 		}
 
 	}
@@ -291,9 +324,19 @@ unsigned long USBSendPacket(unsigned char data[], unsigned char length){
 	bytesWritten = USBBufferWrite((tUSBBuffer *)&g_sTxBuffer,packet, length);
 	if(bytesWritten == length){
 			status = USB_SEND_SUCCESS;
+#ifdef __DEBUG__
+				UARTprintf("\nUSB Packet Send Success"
+						" File: %s"
+						" Line: %d", __FILE__,__LINE__);
+#endif
 	}
 	else{
 			status = USB_SEND_FAIL;
+#ifdef __DEBUG__
+				UARTprintf("\nUSB Packet Send Failure"
+						" File: %s"
+						" Line: %d", __FILE__,__LINE__);
+#endif
 	}
 	return status;
 }
