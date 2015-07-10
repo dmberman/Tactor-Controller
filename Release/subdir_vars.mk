@@ -9,6 +9,8 @@ CMD_SRCS += \
 C_SRCS += \
 ../I2C_Stellaris_API.c \
 ../PCA9685.c \
+../i2c_handlers.c \
+../i2c_structs.c \
 ../lm4f120h5qr_startup_ccs.c \
 ../main.c \
 ../str2num.c \
@@ -20,6 +22,8 @@ C_SRCS += \
 OBJS += \
 ./I2C_Stellaris_API.obj \
 ./PCA9685.obj \
+./i2c_handlers.obj \
+./i2c_structs.obj \
 ./lm4f120h5qr_startup_ccs.obj \
 ./main.obj \
 ./str2num.obj \
@@ -31,6 +35,8 @@ OBJS += \
 C_DEPS += \
 ./I2C_Stellaris_API.pp \
 ./PCA9685.pp \
+./i2c_handlers.pp \
+./i2c_structs.pp \
 ./lm4f120h5qr_startup_ccs.pp \
 ./main.pp \
 ./str2num.pp \
@@ -42,6 +48,8 @@ C_DEPS += \
 C_DEPS__QUOTED += \
 "I2C_Stellaris_API.pp" \
 "PCA9685.pp" \
+"i2c_handlers.pp" \
+"i2c_structs.pp" \
 "lm4f120h5qr_startup_ccs.pp" \
 "main.pp" \
 "str2num.pp" \
@@ -53,6 +61,8 @@ C_DEPS__QUOTED += \
 OBJS__QUOTED += \
 "I2C_Stellaris_API.obj" \
 "PCA9685.obj" \
+"i2c_handlers.obj" \
+"i2c_structs.obj" \
 "lm4f120h5qr_startup_ccs.obj" \
 "main.obj" \
 "str2num.obj" \
@@ -64,6 +74,8 @@ OBJS__QUOTED += \
 C_SRCS__QUOTED += \
 "../I2C_Stellaris_API.c" \
 "../PCA9685.c" \
+"../i2c_handlers.c" \
+"../i2c_structs.c" \
 "../lm4f120h5qr_startup_ccs.c" \
 "../main.c" \
 "../str2num.c" \

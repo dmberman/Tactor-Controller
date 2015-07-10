@@ -13,6 +13,7 @@ C_SRCS += \
 ../i2c_structs.c \
 ../lm4f120h5qr_startup_ccs.c \
 ../main.c \
+../quickSine.c \
 ../str2num.c \
 ../uartstdio.c \
 ../usb_handlers.c \
@@ -26,6 +27,7 @@ OBJS += \
 ./i2c_structs.obj \
 ./lm4f120h5qr_startup_ccs.obj \
 ./main.obj \
+./quickSine.obj \
 ./str2num.obj \
 ./uartstdio.obj \
 ./usb_handlers.obj \
@@ -39,6 +41,7 @@ C_DEPS += \
 ./i2c_structs.pp \
 ./lm4f120h5qr_startup_ccs.pp \
 ./main.pp \
+./quickSine.pp \
 ./str2num.pp \
 ./uartstdio.pp \
 ./usb_handlers.pp \
@@ -52,6 +55,7 @@ C_DEPS__QUOTED += \
 "i2c_structs.pp" \
 "lm4f120h5qr_startup_ccs.pp" \
 "main.pp" \
+"quickSine.pp" \
 "str2num.pp" \
 "uartstdio.pp" \
 "usb_handlers.pp" \
@@ -65,6 +69,7 @@ OBJS__QUOTED += \
 "i2c_structs.obj" \
 "lm4f120h5qr_startup_ccs.obj" \
 "main.obj" \
+"quickSine.obj" \
 "str2num.obj" \
 "uartstdio.obj" \
 "usb_handlers.obj" \
@@ -78,6 +83,7 @@ C_SRCS__QUOTED += \
 "../i2c_structs.c" \
 "../lm4f120h5qr_startup_ccs.c" \
 "../main.c" \
+"../quickSine.c" \
 "../str2num.c" \
 "../uartstdio.c" \
 "../usb_handlers.c" \

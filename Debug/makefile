@@ -13,6 +13,7 @@ $(GEN_CMDS__FLAG) \
 "./usb_handlers.obj" \
 "./uartstdio.obj" \
 "./str2num.obj" \
+"./quickSine.obj" \
 "./main.obj" \
 "./lm4f120h5qr_startup_ccs.obj" \
 "./i2c_structs.obj" \
@@ -134,8 +135,8 @@ TactorSleeveLED.out: $(OBJS) $(CMD_SRCS) $(GEN_CMDS)
 # Other Targets
 clean:
 	-$(RM) $(TMS470_EXECUTABLE_OUTPUTS__QUOTED) "TactorSleeveLED.out"
-	-$(RM) "I2C_Stellaris_API.pp" "PCA9685.pp" "i2c_handlers.pp" "i2c_structs.pp" "lm4f120h5qr_startup_ccs.pp" "main.pp" "str2num.pp" "uartstdio.pp" "usb_handlers.pp" "usb_structs.pp" "waveform.pp" 
-	-$(RM) "I2C_Stellaris_API.obj" "PCA9685.obj" "i2c_handlers.obj" "i2c_structs.obj" "lm4f120h5qr_startup_ccs.obj" "main.obj" "str2num.obj" "uartstdio.obj" "usb_handlers.obj" "usb_structs.obj" "waveform.obj" 
+	-$(RM) "I2C_Stellaris_API.pp" "PCA9685.pp" "i2c_handlers.pp" "i2c_structs.pp" "lm4f120h5qr_startup_ccs.pp" "main.pp" "quickSine.pp" "str2num.pp" "uartstdio.pp" "usb_handlers.pp" "usb_structs.pp" "waveform.pp" 
+	-$(RM) "I2C_Stellaris_API.obj" "PCA9685.obj" "i2c_handlers.obj" "i2c_structs.obj" "lm4f120h5qr_startup_ccs.obj" "main.obj" "quickSine.obj" "str2num.obj" "uartstdio.obj" "usb_handlers.obj" "usb_structs.obj" "waveform.obj" 
 	-@echo 'Finished clean'
 	-@echo ' '
 

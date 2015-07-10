@@ -16,7 +16,12 @@ waveform.obj: C:/ti/ccsv5/tools/compiler/arm_5.1.1/include/math.h
 waveform.obj: C:/ti/ccsv5/tools/compiler/arm_5.1.1/include/ymath.h
 waveform.obj: C:/StellarisWare/inc/hw_types.h
 waveform.obj: C:/StellarisWare/inc/hw_flash.h
+waveform.obj: C:/StellarisWare/inc/hw_memmap.h
+waveform.obj: C:/StellarisWare/inc/hw_ints.h
+waveform.obj: C:/StellarisWare/driverlib/sysctl.h
 waveform.obj: C:/StellarisWare/driverlib/flash.h
+waveform.obj: C:/StellarisWare/driverlib/timer.h
+waveform.obj: C:/StellarisWare/driverlib/rom.h
 
 ../waveform.c: 
 ../waveform.h: 
@@ -34,4 +39,9 @@ C:/ti/ccsv5/tools/compiler/arm_5.1.1/include/math.h:
 C:/ti/ccsv5/tools/compiler/arm_5.1.1/include/ymath.h: 
 C:/StellarisWare/inc/hw_types.h: 
 C:/StellarisWare/inc/hw_flash.h: 
+C:/StellarisWare/inc/hw_memmap.h: 
+C:/StellarisWare/inc/hw_ints.h: 
+C:/StellarisWare/driverlib/sysctl.h: 
 C:/StellarisWare/driverlib/flash.h: 
+C:/StellarisWare/driverlib/timer.h: 
+C:/StellarisWare/driverlib/rom.h: 

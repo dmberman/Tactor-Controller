@@ -9,12 +9,13 @@
 #define USB_HANDLERS_H_
 
 //State Variables
-#define FUNCTION 0
-#define PARAMETER 1
-#define COMMENT 2
+#define WAITING 0 //Currently waiting for start of function (Capital Letter)
+#define FUNCTION 1
+#define PARAMETER 2
+#define COMMENT 3
 
 
-#define USB_RX_LENGTH 50
+#define USB_RX_LENGTH 256
 
 #define REC_MODE_NORMAL 0
 #define REC_MODE_STREAM 1
@@ -24,6 +25,7 @@ extern  volatile unsigned long g_ulUSBRxCount;
 extern  volatile tBoolean g_bUSBConfigured;
 
 void USBSetReceiveMode(unsigned long mode);
+void USB_resetPacketAssembler(void);
 
 unsigned long
 ControlHandler(void *pvCBData, unsigned long ulEvent,

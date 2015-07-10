@@ -62,15 +62,37 @@
 //
 //*****************************************************************************
 
-unsigned char g_ucReadMode = FUNCTION;
+unsigned char g_ucReadMode = WAITING;
 unsigned long g_ulCharIndex = 0;
 unsigned long g_ulParamIndex = 0;
 unsigned long g_ulReceiveMode = REC_MODE_NORMAL;
 unsigned char *g_strFuncName;
-unsigned char *g_strParams[N_PARAMS];
+unsigned long g_ulParams[N_PARAMS];
 unsigned char g_strAssembler[MAX_STR_LEN];
 
 void (*g_ptrStreamFcn)(unsigned char); //Pointer to stream function
+
+void USB_resetPacketAssembler(void){
+	g_ucReadMode = WAITING;
+	g_ulCharIndex = 0;
+	g_ulParamIndex = 0;
+	g_ulReceiveMode = REC_MODE_NORMAL;
+
+#ifdef __DEBUG__
+		UARTprintf("\nTx Buffer Space Available = %d",USBBufferSpaceAvailable((tUSBBuffer *)&g_sTxBuffer));
+		UARTprintf("\nRx Buffer Space Available = %d",USBBufferSpaceAvailable((tUSBBuffer *)&g_sRxBuffer));
+		UARTprintf("\nCLEARING USB BUFFERS...");
+#endif
+
+	USBBufferFlush((tUSBBuffer *)&g_sTxBuffer);
+	USBBufferFlush((tUSBBuffer *)&g_sRxBuffer);
+
+#ifdef __DEBUG__
+	UARTprintf("\nTx Buffer Space Available = %d",USBBufferSpaceAvailable((tUSBBuffer *)&g_sTxBuffer));
+	UARTprintf("\nRx Buffer Space Available = %d",USBBufferSpaceAvailable((tUSBBuffer *)&g_sRxBuffer));
+#endif
+
+}
 
 void GetLineCoding(tLineCoding *psLineCoding)
 {
@@ -101,8 +123,12 @@ USB_ControlHandler(void *pvCBData, unsigned long ulEvent,
             // Flush our buffers.
             USBBufferFlush(&g_sTxBuffer);
             USBBufferFlush(&g_sRxBuffer);
-
-            UARTprintf("USB Connected\n");
+#ifdef __DEBUG__
+	UARTprintf("\nUSB Connected");
+#ifdef __DEBUG_TRACEBACK__
+			UARTprintf(" File: %s Line: %d", __FILE__,__LINE__);
+#endif
+#endif
             break;
 
         //
@@ -110,7 +136,12 @@ USB_ControlHandler(void *pvCBData, unsigned long ulEvent,
         //
         case USB_EVENT_DISCONNECTED:
             g_bUSBConfigured = false;
-            UARTprintf("USB Disconnected\n");
+#ifdef __DEBUG__
+	UARTprintf("\nUSB Disconnected");
+#ifdef __DEBUG_TRACEBACK__
+			UARTprintf(" File: %s Line: %d", __FILE__,__LINE__);
+#endif
+#endif
             break;
 
         //
@@ -174,6 +205,12 @@ USB_TxHandler(void *pvCBData, unsigned long ulEvent, unsigned long ulMsgValue,
             //
             // Increment Packet Counter
         	g_ulUSBTxCount ++;
+			#ifdef __DEBUG__
+				UARTprintf("\nUSB Tx Complete");
+			#ifdef __DEBUG_TRACEBACK__
+						UARTprintf(" File: %s Line: %d", __FILE__,__LINE__);
+			#endif
+			#endif
             break;
 
         //
@@ -181,12 +218,7 @@ USB_TxHandler(void *pvCBData, unsigned long ulEvent, unsigned long ulMsgValue,
         // up in a release build or hang in a debug build.
         //
         default:
-#ifdef DEBUG
-            while(1);
-#else
-            break;
-#endif
-
+        	break;
     }
     return(0);
 }
@@ -230,111 +262,172 @@ USB_RxHandler(void *pvCBData, unsigned long ulEvent, unsigned long ulMsgValue,
         	g_ulUSBRxCount++;
 
         	if(g_ulReceiveMode == REC_MODE_STREAM){
-        		//Buffer reading handled in stream interrupt
+				//Buffer reading handled in stream interrupt
+				#ifdef __DEBUG__
+					UARTprintf("\nUSB Stream Mode Rx Event");
+				#ifdef __DEBUG_TRACEBACK__
+							UARTprintf(" File: %s Line: %d", __FILE__,__LINE__);
+				#endif
+				#endif
         	}
 
         	else{
         		//allocate packet array
-        		ucBytesRead = USBBufferRead((tUSBBuffer *)&g_sRxBuffer, ucCharArr, ulMsgValue);
+        		ucBytesRead = USBBufferRead((tUSBBuffer *)&g_sRxBuffer, ucCharArr, USB_RX_LENGTH-1);
+        		ucCharArr[ucBytesRead] = NULL; //Null terminate string
+				#ifdef __DEBUG__
+					UARTprintf("\nUSB Buffer Dump (length = %d):\n%s\n",ucBytesRead, ucCharArr);
+				#endif
 				for(ulCount=0;ulCount<ucBytesRead;ulCount++){
 					nextByte = ucCharArr[ulCount];
+					#ifdef __DEBUG__
+					#ifdef __DEBUG_USB_EVERYCHAR__
+						UARTprintf("\nUSB nextByte = %c, ",nextByte);
+					#ifdef __DEBUG_TRACEBACK__
+						UARTprintf(" File: %s Line: %d", __FILE__,__LINE__);
+					#endif
+					#endif
+					#endif
 
-/*					//Ignore non-printing and whitespace characters
+					//Ignore non-printing and whitespace characters
 					if(nextByte <= ' '){
-						break;
+						#ifdef __DEBUG__
+							UARTprintf("\nUSB Ignored Character = %c, ",nextByte);
+						#ifdef __DEBUG_TRACEBACK__
+							UARTprintf(" File: %s Line: %d", __FILE__,__LINE__);
+						#endif
+						#endif
+						continue;
 					}
 
-					//Ignore comments
+
 					if(nextByte == '#'){
-						g_ucReadMode = COMMENT;
-						break;
-					}
-
-					if(g_ucReadMode == COMMENT){
-						if(nextByte == '#'){
-							g_ucReadMode = FUNCTION;
+						if(g_ucReadMode == COMMENT){
+							g_ucReadMode = WAITING;
 							g_ulCharIndex = 0;
 							g_ulParamIndex = 0;
+							#ifdef __DEBUG__
+								UARTprintf("\ng_ucReadMode = FUNCTION");
+								#ifdef __DEBUG_TRACEBACK__
+									UARTprintf(" File: %s Line: %d", __FILE__,__LINE__);
+								#endif
+							#endif
+							continue;
 						}
-						break;
+						else{
+							g_ucReadMode = COMMENT;
+							#ifdef __DEBUG__
+								UARTprintf("\ng_ucReadMode = COMMENT");
+								#ifdef __DEBUG_TRACEBACK__
+									UARTprintf(" File: %s Line: %d", __FILE__,__LINE__);
+								#endif
+							#endif
+							continue;
+						}
 					}
-*/
-					if(nextByte == ')'){ //End of input
-						g_strAssembler[g_ulCharIndex] = NULL;
-						g_strParams[g_ulParamIndex] = malloc(strlen((char *)g_strAssembler) + 1); //allocate memory for parameter value
-						strcpy((char *)g_strParams[g_ulParamIndex],(char *)g_strAssembler);
 
-						if(g_ulParamIndex > 0){
-							g_ulParamIndex ++;
-						}
-
-						//Echo Command
-					    /*
-						ucCharArr[0] = '\n';
-						USBBufferWrite((tUSBBuffer *)g_sTxBuffer,(*c'\n',1);
-						USBBufferWrite((tUSBBuffer *)g_sTxBuffer,g_strFuncName,strlen((char *)g_strFuncName));
-						ucCharArr[0] = "(";
-						USBBufferWrite((tUSBBuffer *)g_sTxBuffer,ucCharArr,1);
-						for(ulCount2=0;ulCount2<g_ulParamIndex+1;ulCount2++){
-							USBBufferWrite((tUSBBuffer *)g_sTxBuffer,g_strParams[ulCount2],strlen((char *)g_strParams[ulCount2]));
-							ucCharArr[0] = ",";
-							USBBufferWrite((tUSBBuffer *)g_sTxBuffer,ucCharArr,1);
-						}
-						ucCharArr = ")\n";
-						USBBufferWrite((tUSBBuffer *)g_sTxBuffer,ucCharArr,2);
-*/
-						parseUSB(g_strFuncName,g_strParams,g_ulParamIndex);
-						g_ucReadMode = FUNCTION;
-						g_ulCharIndex = 0;
-						g_ulParamIndex = 0;
-						break;
-					}
-					else{ //not end of input
-						if(g_ucReadMode == FUNCTION){ //If currently reading function
-							if(nextByte == '('){
-								g_strAssembler[g_ulCharIndex] = NULL; //Terminate string
-								g_strFuncName = malloc(strlen((char *)g_strAssembler) + 1); //allocate memory for function name
-								strcpy((char *)g_strFuncName,(char *)g_strAssembler); //Copy function name
-								g_ulCharIndex = 0;
-								g_ucReadMode = PARAMETER;
+					switch(g_ucReadMode){
+					case WAITING:
+							if(nextByte < 'A' || nextByte > 'Z'){
+								continue;
 							}
 							else{
-								g_strAssembler[g_ulCharIndex] = nextByte;
-								g_ulCharIndex ++;
-								if(g_ulCharIndex > MAX_FUNC_LENGTH){ //Error Checking
-									g_ucReadMode = FUNCTION;
-									g_ulCharIndex = 0;
-									g_ulParamIndex = 0;
-									break;
-								}
+								g_ucReadMode = FUNCTION;
+							}
+							//DON'T PUT A BREAK HERE!
+					case FUNCTION:
+						if(nextByte == '('){ //end of Function section
+							g_strAssembler[g_ulCharIndex] = NULL; //Terminate string
+							g_strFuncName = malloc(strlen((char *)g_strAssembler) + 1); //allocate memory for function name
+							strcpy((char *)g_strFuncName,(char *)g_strAssembler); //Copy function name
+							g_ulCharIndex = 0;
+							g_ucReadMode = PARAMETER;
+							#ifdef __DEBUG__
+							#ifdef __DEBUG_USB_EVERYCHAR__
+								UARTprintf("\ng_ucReadMode = PARAMETER");
+								#ifdef __DEBUG_TRACEBACK__
+									UARTprintf(" File: %s Line: %d", __FILE__,__LINE__);
+								#endif
+							#endif
+							#endif
+							continue;
+						}
+						else{
+							g_strAssembler[g_ulCharIndex] = nextByte;
+							g_ulCharIndex ++;
+							if(g_ulCharIndex > MAX_FUNC_LENGTH){ //Error Checking
+								g_ucReadMode = WAITING;
+								g_ulCharIndex = 0;
+								g_ulParamIndex = 0;
+								#ifdef __DEBUG__
+									UARTprintf("\nFUNCTION LENGTH EXCEEDED, g_ucReadMode = WAITING");
+									#ifdef __DEBUG_TRACEBACK__
+										UARTprintf(" File: %s Line: %d", __FILE__,__LINE__);
+									#endif
+								#endif
+								continue;
 							}
 						}
-						else{ 						  //Currently reading parameters
-							if(nextByte == ' ' || nextByte == ','){ //next parameter
-								g_strAssembler[g_ulCharIndex] = NULL;
-								g_strParams[g_ulParamIndex] = malloc(strlen((char *)g_strAssembler) + 1); //allocate memory for parameter value
-								strcpy((char *)g_strParams[g_ulParamIndex],(char *)g_strAssembler);
+						break;
+					case PARAMETER:
+						if(nextByte == ')'){ //end of input
+							g_strAssembler[g_ulCharIndex] = NULL;
+							g_ulParams[g_ulParamIndex] = str2ul(g_strAssembler);
+
+							if(g_ulParamIndex > 0){
 								g_ulParamIndex ++;
-								g_ulCharIndex = 0;
+							}
+
+							parseUSB(g_strFuncName,g_ulParams,g_ulParamIndex);
+							g_ucReadMode = WAITING;
+							g_ulCharIndex = 0;
+							g_ulParamIndex = 0;
+							free(g_strFuncName);
+							#ifdef __DEBUG__
+							#ifdef __DEBUG_USB_EVERYCHAR__
+								UARTprintf("\ng_ucReadMode = WAITING");
+								#ifdef __DEBUG_TRACEBACK__
+									UARTprintf(" File: %s Line: %d", __FILE__,__LINE__);
+								#endif
+							#endif
+							#endif
+							continue;
+						}
+						else{
+							if(nextByte == ' ' || nextByte == ','){ //next parameter
+							g_strAssembler[g_ulCharIndex] = NULL;
+							g_ulParams[g_ulParamIndex] = str2ul(g_strAssembler);
+							g_ulParamIndex ++;
+							g_ulCharIndex = 0;
+							continue;
 							}
 							else{
 								g_strAssembler[g_ulCharIndex] = nextByte;
 								g_ulCharIndex ++;
 								if(g_ulCharIndex > MAX_PARAM_LENGTH){ //Error Checking
-									g_ucReadMode = FUNCTION;
+									g_ucReadMode = WAITING;
 									g_ulCharIndex = 0;
 									g_ulParamIndex = 0;
-									break;
+									#ifdef __DEBUG__
+									#ifdef __DEBUG_USB_EVERYCHAR__
+										UARTprintf("\nPARAMEtER LENGTH EXCEEDED, g_ucReadMode = WAITING");
+										#ifdef __DEBUG_TRACEBACK__
+											UARTprintf(" File: %s Line: %d", __FILE__,__LINE__);
+										#endif
+									#endif
+									#endif
+									continue;
 								}
 							}
 						}
+
+						break;
+					default:
+						break;
 					}
 				}
-            break;
-        	}
-
+			}
         }
-        //
         // We are being asked how much unprocessed data we have still to
         // process. We return 0 if the UART is currently idle or 1 if it is
         // in the process of transmitting something. The actual number of
@@ -346,6 +439,12 @@ USB_RxHandler(void *pvCBData, unsigned long ulEvent, unsigned long ulMsgValue,
             //
             // For now just return 0
             //
+			#ifdef __DEBUG__
+				UARTprintf("\nUSB_EVENT_DATA_REMAINING");
+				#ifdef __DEBUG_TRACEBACK__
+					UARTprintf(" File: %s Line: %d", __FILE__,__LINE__);
+				#endif
+			#endif
         	ulCount = 0;
             return(ulCount);
         }
@@ -359,6 +458,12 @@ USB_RxHandler(void *pvCBData, unsigned long ulEvent, unsigned long ulMsgValue,
         //
         case USB_EVENT_REQUEST_BUFFER:
         {
+			#ifdef __DEBUG__
+				UARTprintf("\nUSB_EVENT_REQUEST_BUFFER");
+				#ifdef __DEBUG_TRACEBACK__
+					UARTprintf(" File: %s Line: %d", __FILE__,__LINE__);
+				#endif
+			#endif
             return(0);
         }
 
@@ -369,8 +474,6 @@ USB_RxHandler(void *pvCBData, unsigned long ulEvent, unsigned long ulMsgValue,
         default:
         	return(0);
     }
-
-    return(0);
 }
 
 

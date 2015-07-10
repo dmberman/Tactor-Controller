@@ -1,1 +1,1 @@
-"./waveform.obj" "./usb_structs.obj" "./usb_handlers.obj" "./uartstdio.obj" "./str2num.obj" "./main.obj" "./lm4f120h5qr_startup_ccs.obj" "./PCA9685.obj" "./I2C_Stellaris_API.obj" "../lm4f120h5qr.cmd" -l"libc.a" 
+"./waveform.obj" "./usb_structs.obj" "./usb_handlers.obj" "./uartstdio.obj" "./str2num.obj" "./main.obj" "./lm4f120h5qr_startup_ccs.obj" "./i2c_structs.obj" "./i2c_handlers.obj" "./PCA9685.obj" "./I2C_Stellaris_API.obj" "../lm4f120h5qr.cmd" -l"libc.a" 

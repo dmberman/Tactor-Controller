@@ -16,7 +16,11 @@
 
 #define OFF_DUTY_CYCLE 0 //Duty Cycle sent to PCA9685 when motor is stopped
 
-
+#define SINE_TIMER_BASE TIMER0_BASE
+#define SINE_TIMER_SIDE TIMER_A
+#define SINE_TIMER_INT TIMER_TIMA_TIMEOUT
+#define SINE_TIMER_PERHIP SYSCTL_PERIPH_TIMER0
+#define SINE_TIMER_IE INT_TIMER0A
 
 typedef struct tagWaveform{
 	unsigned long envelopeShape;
@@ -33,6 +37,8 @@ typedef struct tagMotor{
 }tMotor;
 
 unsigned long initWaveform(void);
+void initSineTimer(unsigned long sineFreq);
+
 unsigned long waveformFlashSave(void);
 unsigned long getWaveform(unsigned long slot, tWaveform *waveform);
 unsigned long setWaveform(unsigned long slot, unsigned long envelopeShape, unsigned long envelopeDutyCycle,
@@ -40,6 +46,5 @@ unsigned long setWaveform(unsigned long slot, unsigned long envelopeShape, unsig
 unsigned long slotFull(unsigned long slot);
 unsigned long stopMotor(unsigned long motor);
 unsigned long runMotor(unsigned long motor, unsigned long waveform, unsigned long amplitudeStretch, unsigned long frequencyStretch);
-void stepWaveform(unsigned long currentMS);
-
+unsigned long getCurrentMS(void);
 #endif

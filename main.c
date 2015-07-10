@@ -1,6 +1,4 @@
-#ifndef __DEBUG__
-#define __DEBUG__
-#endif
+
 
 #include "inc/hw_ints.h"
 #include "inc/hw_memmap.h"
@@ -45,11 +43,6 @@
 #include <stdbool.h>
 #include <math.h>
 
-//Porting:
-#define LED_BASE GPIO_PORTF_BASE
-#define LED_RED GPIO_PIN_1
-#define LED_BLUE GPIO_PIN_2
-#define LED_GREEN GPIO_PIN_3
 
 //*****************************************************************************
 //
@@ -58,18 +51,6 @@
 //*****************************************************************************
  volatile unsigned long g_unsavedWaveform = FALSE;
 
-//*****************************************************************************
-//
-//Sine Timer Variables
-//
-//*****************************************************************************
-
-volatile unsigned long g_ulSampleFreq = 0;
-volatile unsigned long g_sineTimerVal = 0;
-volatile unsigned long g_sineTimerMS = 0;
-volatile unsigned long g_sineIntCount = 0;
-unsigned long g_sysClk = 0;
-unsigned long g_timerLoadVal = 0;
 
 //*****************************************************************************
 //
@@ -126,26 +107,7 @@ __error__(char *pcFilename, unsigned long ulLine)
 #endif
 
 
-volatile unsigned long dutyCycle;
 
-void sineTimerLoad(unsigned long sampleFreq){
-    g_ulSampleFreq = sampleFreq; //Sample period
-    g_sysClk = ROM_SysCtlClockGet();
-    g_timerLoadVal = g_sysClk/sampleFreq;
-    ROM_TimerLoadSet(SINE_TIMER_BASE,SINE_TIMER_SIDE,g_timerLoadVal);
-}
-
-void initSineTimer(unsigned long sampleFreq){
-	ROM_SysCtlPeripheralEnable(SINE_TIMER_PERHIP);
-    flashLED(LED_GREEN);
-	ROM_TimerConfigure(SINE_TIMER_BASE,TIMER_CFG_PERIODIC);
-	ROM_TimerControlStall(SINE_TIMER_BASE,SINE_TIMER_SIDE,1);
-	sineTimerLoad(sampleFreq);
-    ROM_TimerIntClear(SINE_TIMER_BASE,SINE_TIMER_INT);
-    ROM_TimerEnable(SINE_TIMER_BASE,SINE_TIMER_SIDE);
-    ROM_TimerIntEnable(SINE_TIMER_BASE,SINE_TIMER_INT);
-    ROM_IntEnable(SINE_TIMER_IE);
-}
 
 
 int initUSB(void){
@@ -162,6 +124,8 @@ int initUSB(void){
     USBSetReceiveMode(REC_MODE_NORMAL);
 	USBBufferInit((tUSBBuffer *)&g_sTxBuffer);
 	USBBufferInit((tUSBBuffer *)&g_sRxBuffer);
+	USBBufferFlush((tUSBBuffer *)&g_sTxBuffer);
+	USBBufferFlush((tUSBBuffer *)&g_sRxBuffer);
 
 	// Set the USB stack mode to Device mode with VBUS monitoring.
 	USBStackModeSet(0, USB_MODE_DEVICE, 0);
@@ -230,7 +194,6 @@ int init(void){
 	    initSysTick();
 	    initUART();
 	    initWaveform();
-	    initSineTimer(50);
 		return 0;
 }
 
@@ -255,38 +218,30 @@ int main(void) {
 
 	init();
 #ifdef __DEBUG__
-	UARTprintf("\nInitialized"
-			" File: %s"
-			" Line: %d", __FILE__,__LINE__);
+	UARTprintf("\nInitialized");
+	#ifdef __DEBUG_TRACEBACK__
+		UARTprintf(" File: %s Line: %d", __FILE__,__LINE__);
+	#endif
 #endif
 	while(1){
 		if(g_unsavedWaveform == TRUE){
 			waveformFlashSave();
 #ifdef __DEBUG__
-			UARTprintf("\nWaveform Saved"
-					" File: %s"
-					" Line: %d", __FILE__,__LINE__);
+			UARTprintf("\nWaveform Saved");
+			#ifdef __DEBUG_TRACEBACK__
+				UARTprintf(" File: %s Line: %d", __FILE__,__LINE__);
+			#endif
 #endif
 		}
 
 		if(ulTxCount != g_ulUSBTxCount){ //USB data has been sent
 				flashLED(0x0E); //Flash White LED
 				ulTxCount = g_ulUSBTxCount;
-#ifdef __DEBUG__
-				UARTprintf("\nUSB Packet Sent"
-						" File: %s"
-						" Line: %d", __FILE__,__LINE__);
-#endif
 		}
 
 		if(ulRxCount != g_ulUSBRxCount){ //USB data has been received
 				flashLED(0x0C); //Flash Yellow LED
 				ulRxCount = g_ulUSBRxCount;
-#ifdef __DEBUG__
-				UARTprintf("\nUSB Packet Received"
-						" File: %s"
-						" Line: %d", __FILE__,__LINE__);
-#endif
 		}
 
 		if(ulSysTickCount != g_ulSysTickCount){ //flash heartbeat
@@ -298,10 +253,11 @@ int main(void) {
 				for(ulLoop = 0; ulLoop < 100000; ulLoop++);
 				GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3, oldLEDState); //Return to previous LED state
 				ulSysTickCount = g_ulSysTickCount;
-#ifdef __DEBUG__
-				UARTprintf("\nHeartbeat"
-						" File: %s"
-						" Line: %d", __FILE__,__LINE__);
+#ifdef __DEBUG_HEARTBEAT__
+				UARTprintf("\nHeartbeat. g_ulSysTickCount = %d",g_ulSysTickCount);
+				#ifdef __DEBUG_TRACEBACK__
+					UARTprintf(" File: %s Line: %d", __FILE__,__LINE__);
+				#endif
 #endif
 		}
 
@@ -325,17 +281,19 @@ unsigned long USBSendPacket(unsigned char data[], unsigned char length){
 	if(bytesWritten == length){
 			status = USB_SEND_SUCCESS;
 #ifdef __DEBUG__
-				UARTprintf("\nUSB Packet Send Success"
-						" File: %s"
-						" Line: %d", __FILE__,__LINE__);
+				UARTprintf("\nUSB Packet Send Success, Packet Dump = \n%s",data);
+				#ifdef __DEBUG_TRACEBACK__
+					UARTprintf(" File: %s Line: %d", __FILE__,__LINE__);
+				#endif
 #endif
 	}
 	else{
 			status = USB_SEND_FAIL;
 #ifdef __DEBUG__
-				UARTprintf("\nUSB Packet Send Failure"
-						" File: %s"
-						" Line: %d", __FILE__,__LINE__);
+				UARTprintf("\nUSB Packet Send Failure, Packet Dump = \n%s",data);
+				#ifdef __DEBUG_TRACEBACK__
+					UARTprintf(" File: %s Line: %d", __FILE__,__LINE__);
+				#endif
 #endif
 	}
 	return status;
@@ -402,32 +360,49 @@ unsigned long GPIOPinNumber(unsigned char port){
 }
 
 
-void parseUSB(unsigned char *func_name,unsigned char *params[],unsigned long nparams){
-	unsigned long i;
+void parseUSB(unsigned char *func_name,unsigned long params[],unsigned long nparams){
+	unsigned long i,length;
 	unsigned char packet[Tx_MAX_PACKET_LENGTH];
 	unsigned long sinFreq[N_SINE_COMPONENTS], sinAmplitude[N_SINE_COMPONENTS];
+
+	length = 1; //default length of ACK/NACK response
+
+#ifdef __DEBUG__
+	UARTprintf("\nparseUSB: %s(",func_name);
+	if(nparams>0){
+		UARTprintf("%d",params[0]);
+		for(i=0;i<nparams;i++){
+			UARTprintf(",%d",params[i]);
+		}
+	}
+	UARTprintf("), nparams = %d ",nparams);
+	#ifdef __DEBUG_TRACEBACK__
+		UARTprintf(" File: %s Line: %d", __FILE__,__LINE__);
+	#endif
+#endif
+
 	switch(func_name[0]){
 		case LED:
-			ROM_GPIOPinWrite(LED_BASE,LED_RED, str2ul(params[0]));
+			ROM_GPIOPinWrite(LED_BASE,LED_RED, params[0]);
 			packet[0] = ACK;
 			break;
 		case MOTOR_RUN:
-			 runMotor(str2ul(params[0]), //Channel
-					 str2ul(params[1]),  //Waveform
-					 str2ul(params[2]),  //Amplitude Stretch
-					 str2ul(params[3])); //Frequency Stretch
+			 runMotor(params[0], //Channel
+					 params[1],  //Waveform
+					 params[2],  //Amplitude Stretch
+					 params[3]); //Frequency Stretch
 			packet[0] = ACK;
 			break;
 		case ALL_RUN:
 			for(i=0;i<N_MOTORS;i++){
 				runMotor(i, 			   //Channel
-						str2ul(params[0]), //Waveform
-						str2ul(params[1]), //Amplitude Stretch
-						str2ul(params[2])); //Frequency Stretch
+						params[0], //Waveform
+						params[1], //Amplitude Stretch
+						params[2]); //Frequency Stretch
 
 			}
 		case MOTOR_STOP:
-			stopMotor(str2ul(params[0])); //Channel
+			stopMotor(params[0]); //Channel
 			packet[0] = ACK;
 			break;
 		case ALL_STOP:
@@ -445,18 +420,18 @@ void parseUSB(unsigned char *func_name,unsigned char *params[],unsigned long npa
 			break;
 		case SET_WAVEFORM:
 			for(i=0;i<N_SINE_COMPONENTS;i++){
-				sinFreq[i] = str2ul(params[3+(i*2)]);
-				sinAmplitude[i] = str2ul(params[4+(i*2)]);
+				sinFreq[i] = params[3+(i*2)];
+				sinAmplitude[i] = params[4+(i*2)];
 			}
-			setWaveform(str2ul(params[0]), //Slope
-					str2ul(params[1]), //Envelope Shape
-					str2ul(params[2]), //Envelope Duty Cycle
+			setWaveform(params[0], //Slope
+					params[1], //Envelope Shape
+					params[2], //Envelope Duty Cycle
 					sinFreq,
 					sinAmplitude);	   //Sine Component Amplitude
 			packet[0] = ACK;
 			break;
 		case SET_SAMPLE_RATE:
-			sineTimerLoad(str2ul(params[0])); //sample frequency
+			initSineTimer(params[0]); //sample frequency
 			packet[0] = ACK;
 			break;
 		case GET_WAVEFORM:
@@ -465,11 +440,22 @@ void parseUSB(unsigned char *func_name,unsigned char *params[],unsigned long npa
 		case GET_SAMPLE_RATE:
 			packet[0] = NACK;
 			break;
+		case GET_CURRENT_MS:
+			length = sprintf(packet,"%d",getCurrentMS());
+			break;
 		default:
 			packet[0] = NACK;
+			USB_resetPacketAssembler();
+#ifdef __DEBUG__
+	UARTprintf("\nParse Failure");
+	#ifdef __DEBUG_TRACEBACK__
+		UARTprintf(" File: %s Line: %d", __FILE__,__LINE__);
+	#endif
+#endif
 	}
 
-	USBSendPacket(packet,1);
+	USBSendPacket(packet,length);
+
 
 }
 
@@ -480,21 +466,10 @@ void parseUSB(unsigned char *func_name,unsigned char *params[],unsigned long npa
 //
 //*****************************************************************************
 void SysTickIntHandler(void){
-	//flashLED(LED_GREEN);
+	g_ulSysTickCount ++;
 }
 
-void SineTimerIntHandler(void){
-	ROM_TimerIntClear(SINE_TIMER_BASE, SINE_TIMER_INT);
-	g_sineIntCount ++;
-	if(g_sineIntCount > 100){ //Toggle LED every 100 interrupts
-		GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_1,
-				~GPIOPinRead(GPIO_PORTF_BASE, GPIO_PIN_1));
-		g_sineIntCount = 0;
-	}
-	g_sineTimerVal = (g_timerLoadVal - TimerValueGet(SINE_TIMER_BASE,SINE_TIMER_SIDE)); //Add ISR Access Time
-	g_sineTimerMS += ((g_timerLoadVal+g_sineTimerVal)*1000)/g_sysClk;
-	stepWaveform(g_sineTimerMS);
-}
+
 
 void I2CIntHandler(void){
 }

@@ -9,11 +9,11 @@
 #define PROTO_DEFS_H_
 
 #define N_PARAMS 10 //Max number of parameters for a function
-#define MAX_STR_LEN 20 //Max length in characters of parameter or function name value
+#define MAX_STR_LEN 200 //Max length in characters of parameter or function name value
 #define Tx_MAX_PACKET_LENGTH 25//Max length of transmit packet
 
-#define MAX_PARAM_LENGTH 6
-#define MAX_FUNC_LENGTH 3
+#define MAX_PARAM_LENGTH 16
+#define MAX_FUNC_LENGTH 16
 
 //Motor Controls
 #define MOTOR_RUN 'R'
@@ -34,6 +34,6 @@
 #define GET_WAVEFORM 'G'
 #define SET_SAMPLE_RATE 'P'
 #define GET_SAMPLE_RATE 'M'
-
+#define GET_CURRENT_MS 'Q'
 
 #endif /* PROTO_DEFS_H_ */

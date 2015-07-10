@@ -8,6 +8,39 @@
 #ifndef MAIN_H_
 #define MAIN_H_
 
+//DEBUG MODES
+//General Debug Mode
+#ifndef __DEBUG__
+#define __DEBUG__
+#endif
+
+//Include traceback info in debug line (file, line #)
+/*
+#ifndef __DEBUG_TRACEBACK__
+#define __DEBUG_TRACEBACK__
+#endif
+*/
+
+//Print heartbeat message to debug
+/*
+#ifndef __DEBUG_HEARTBEAT__
+#define __DEBUG_HEARTBEAT__
+#endif
+*/
+
+//Printf sine_timer heartbeat to debug
+/*
+#ifndef __DEBUG_SINE_HEARTBEAT__
+#define __DEBUG_SINE_HEARTBEAT__
+#endif
+*/
+
+//Verbose usb debug mode
+/*
+#ifndef __DEBUG_USB_EVERYCHAR__
+#define __DEBUG_USB_EVERYCHAR__
+#endif
+*/
 
 #include "I2C_Stellaris_API.h"
 
@@ -26,11 +59,7 @@
 	#define FALSE 0
 #endif
 
-#define SINE_TIMER_BASE TIMER0_BASE
-#define SINE_TIMER_SIDE TIMER_A
-#define SINE_TIMER_INT TIMER_TIMA_TIMEOUT
-#define SINE_TIMER_PERHIP SYSCTL_PERIPH_TIMER0
-#define SINE_TIMER_IE INT_TIMER0A
+
 
 #define PI 3.1415926
 #define PI_2 6.28318
@@ -45,20 +74,21 @@
 
 
 //PORTING
-
-
+#define LED_BASE GPIO_PORTF_BASE
+#define LED_RED GPIO_PIN_1
+#define LED_BLUE GPIO_PIN_2
+#define LED_GREEN GPIO_PIN_3
 
 #define I2C_BASE I2C3_MASTER_BASE
 
 //*****************************************************************************
 //
-// USB Parsing Functions and Definitions
+// Function Prototypes
 //
 //*****************************************************************************
 
-void parseUSB(unsigned char *func_name,unsigned char *params[],unsigned long nparams);
+void parseUSB(unsigned char *func_name,unsigned long params[],unsigned long nparams);
 unsigned long USBSendPacket(unsigned char data[], unsigned char length);
-void initSineTimer(unsigned long sineFreq);
 void flashLED(unsigned long color);
 
 

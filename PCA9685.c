@@ -42,7 +42,7 @@
 #include "main.h"
 
 //I2C Addresses
-#define PCA9685_ADDRESS 0x55
+#define PCA9685_ADDRESS 0x7C
 #define PCA9685_RESET 0x06
 
 //Register Addresses
